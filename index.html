@@ -1,0 +1,877 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Relay Comparator — Aegion Dynamic</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=block" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+try{
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          "primary-container": "#853953", "on-background": "#1b1c1c",
+          "on-primary-fixed-variant": "#762d47", "surface-variant": "#e4e2e1",
+          "surface-container-low": "#f6f3f2", "surface": "#fcf9f8",
+          "secondary": "#844b73", "tertiary-fixed": "#b2f3ab",
+          "on-primary-fixed": "#3e011c", "outline": "#857276",
+          "surface-container": "#f0eded", "surface-bright": "#fcf9f8",
+          "on-error-container": "#93000a", "inverse-on-surface": "#f3f0f0",
+          "tertiary-fixed-dim": "#97d691", "tertiary": "#064612",
+          "primary-fixed": "#ffd9e1", "surface-container-high": "#eae7e7",
+          "on-primary": "#ffffff", "on-surface-variant": "#534346",
+          "surface-container-highest": "#e4e2e1", "on-secondary": "#ffffff",
+          "on-secondary-container": "#7b436b", "error": "#ba1a1a",
+          "on-surface": "#1b1c1c", "secondary-fixed-dim": "#f7b1df",
+          "primary-fixed-dim": "#ffb1c6", "on-secondary-fixed": "#36072d",
+          "inverse-surface": "#303030", "on-tertiary-fixed": "#002204",
+          "on-tertiary": "#ffffff", "error-container": "#ffdad6",
+          "secondary-fixed": "#ffd7ee", "on-tertiary-container": "#97d691",
+          "on-secondary-fixed-variant": "#69345b", "tertiary-container": "#245e27",
+          "on-error": "#ffffff", "surface-tint": "#93455f",
+          "outline-variant": "#d8c1c5", "secondary-container": "#fdb7e5",
+          "inverse-primary": "#ffb1c6", "primary": "#68223c",
+          "surface-container-lowest": "#ffffff", "background": "#fcf9f8",
+          "on-tertiary-fixed-variant": "#16521c"
+        },
+        borderRadius: { DEFAULT: "0.125rem", lg: "0.25rem", xl: "0.5rem", full: "0.75rem" },
+        spacing: {
+          "container-max": "1440px", "margin-desktop": "40px", "stack-md": "16px",
+          "margin-mobile": "16px", "stack-xs": "4px", "stack-lg": "24px",
+          unit: "4px", "stack-sm": "8px", gutter: "24px"
+        },
+        fontFamily: {
+          "body-lg": ["Hanken Grotesk"], "data-md": ["JetBrains Mono"],
+          "headline-lg": ["Hanken Grotesk"], "headline-md": ["Hanken Grotesk"],
+          "label-sm": ["JetBrains Mono"], "body-md": ["Hanken Grotesk"],
+          "display-lg": ["Hanken Grotesk"], "data-lg": ["JetBrains Mono"]
+        },
+        fontSize: {
+          "body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+          "data-md": ["14px", { lineHeight: "20px", fontWeight: "500" }],
+          "headline-lg": ["32px", { lineHeight: "40px", fontWeight: "600" }],
+          "headline-md": ["24px", { lineHeight: "32px", fontWeight: "600" }],
+          "label-sm": ["12px", { lineHeight: "16px", fontWeight: "600" }],
+          "body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+          "display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }],
+          "data-lg": ["18px", { lineHeight: "24px", fontWeight: "500" }]
+        }
+      }
+    }
+  }
+}catch(_e){}
+</script>
+<style>
+  .custom-scrollbar::-webkit-scrollbar{ width:8px; height:8px; }
+  .custom-scrollbar::-webkit-scrollbar-track{ background:transparent; }
+  .custom-scrollbar::-webkit-scrollbar-thumb{ background:#d8c1c5; border-radius:9999px; }
+  .chart-glow{ filter: drop-shadow(0 0 6px rgba(104,34,60,0.15)); }
+
+  @keyframes fadeBlurIn{
+    from{ opacity:0; filter:blur(8px); transform:translateY(14px); }
+    to{ opacity:1; filter:blur(0px); transform:translateY(0); }
+  }
+  .stagger-in{ opacity:0; animation: fadeBlurIn 0.6s cubic-bezier(.2,.7,.3,1) forwards; }
+
+  .accordion-content{ display:grid; grid-template-rows:0fr; transition:grid-template-rows 0.35s ease; }
+  .accordion-content > div{ overflow:hidden; }
+  .accordion-item.open .accordion-content{ grid-template-rows:1fr; }
+  .accordion-chevron{ transition:transform 0.3s ease; }
+  .accordion-item.open .accordion-chevron{ transform:rotate(180deg); }
+
+  .dropzone-active{ border-color:#853953 !important; background-color: rgba(133,57,83,0.05); }
+  #fileInput{ display:none; }
+</style>
+</head>
+<body class="font-body-md text-body-md overflow-x-hidden min-h-screen flex flex-col">
+
+<!-- Header -->
+<header class="w-full z-50 flex justify-between items-center px-margin-desktop h-20 bg-on-background">
+  <div class="flex flex-col">
+    <span class="text-label-sm font-label-sm text-outline-variant tracking-[0.2em] uppercase">AEGION DYNAMIC</span>
+    <span class="text-headline-md font-headline-md font-bold text-on-primary">Relay Comparator</span>
+  </div>
+  <div id="statusPill" class="hidden md:flex items-center gap-2 border border-outline-variant/40 rounded-full px-3 py-1.5">
+    <span id="statusDot" class="w-2 h-2 rounded-full bg-outline-variant"></span>
+    <span id="statusText" class="text-label-sm font-label-sm text-on-primary/80 uppercase">Awaiting Data</span>
+  </div>
+</header>
+
+<!-- Main Content -->
+<main class="flex-1 custom-scrollbar bg-background">
+<div class="max-w-7xl mx-auto p-stack-lg space-y-stack-lg">
+
+  <!-- 1. Data Ingestion Area -->
+  <section class="w-full">
+    <input type="file" id="fileInput" accept=".csv,text/csv" multiple>
+    <div id="dropzone" class="bg-surface border-2 border-dashed border-outline-variant rounded-xl p-stack-lg flex flex-col items-center justify-center text-center group hover:border-primary transition-colors cursor-pointer bg-surface-container-low/50 shadow-sm">
+      <div class="w-16 h-16 bg-primary-container rounded-full flex items-center justify-center text-on-primary mb-stack-md group-hover:scale-110 transition-transform">
+        <span class="material-symbols-outlined text-[32px]" id="dropzoneIcon">upload_file</span>
+      </div>
+      <h2 class="text-headline-md font-headline-md text-on-background" id="dropzoneTitle">Drop CSV Files Here</h2>
+      <p class="text-body-md text-on-surface-variant mt-2 max-w-md" id="dropzoneSubtitle">Upload industrial relay logs to begin accuracy comparison and drift analysis. Drop two files at once, or one at a time — first is Source A, second is Source B.</p>
+      <div class="flex items-center gap-3 mt-stack-lg">
+        <button id="selectFilesBtn" type="button" class="bg-primary text-on-primary font-bold px-8 py-3 rounded hover:bg-primary/90 transition-colors">
+          Select Files from Local Node
+        </button>
+        <button id="clearFilesBtn" type="button" class="hidden border border-outline-variant text-on-surface-variant font-bold px-6 py-3 rounded hover:bg-surface-container transition-colors">
+          Clear
+        </button>
+      </div>
+      <p id="dropzoneError" class="hidden mt-stack-md text-label-sm font-label-sm text-error"></p>
+    </div>
+  </section>
+
+  <!-- 2. Accuracy Overview Metrics -->
+  <section class="grid grid-cols-1 md:grid-cols-4 gap-gutter">
+    <div class="bg-surface p-stack-lg border border-outline-variant rounded-lg shadow-sm">
+      <p class="text-label-sm font-label-sm text-outline uppercase">OVERALL ACCURACY</p>
+      <div class="flex items-end gap-2 mt-2">
+        <span class="text-display-lg font-display-lg leading-none text-on-background" id="overallAccuracyValue">--</span>
+        <span class="text-headline-md text-tertiary mb-1">%</span>
+      </div>
+      <div class="w-full h-1 bg-surface-container mt-4 rounded-full overflow-hidden">
+        <div class="h-full bg-tertiary transition-all duration-700 ease-out" id="overallAccuracyBar" style="width:0%"></div>
+      </div>
+    </div>
+    <div class="bg-surface p-stack-lg border border-outline-variant rounded-lg shadow-sm">
+      <p class="text-label-sm font-label-sm text-outline uppercase">TIMESTAMP ACCURACY</p>
+      <div class="flex items-end gap-2 mt-2">
+        <span class="text-display-lg font-display-lg leading-none text-on-background" id="timestampAccuracyValue">--</span>
+        <span class="text-headline-md text-primary mb-1">%</span>
+      </div>
+      <p class="text-label-sm font-label-sm text-tertiary mt-4" id="timestampAccuracyNote">Awaiting data</p>
+    </div>
+    <div class="bg-surface p-stack-lg border border-outline-variant rounded-lg shadow-sm">
+      <p class="text-label-sm font-label-sm text-outline uppercase">ANALOG VALUE ACCURACY</p>
+      <div class="flex items-end gap-2 mt-2">
+        <span class="text-display-lg font-display-lg leading-none text-on-background" id="analogAccuracyValue">--</span>
+        <span class="text-headline-md text-outline mb-1">%</span>
+      </div>
+      <p class="text-label-sm font-label-sm text-on-surface-variant mt-4" id="analogAccuracyNote">Awaiting data</p>
+    </div>
+    <div class="bg-on-background text-on-primary p-stack-lg rounded-lg shadow-lg">
+      <p class="text-label-sm font-label-sm text-primary-fixed uppercase">RELAY STATUS ACCURACY</p>
+      <div class="flex items-end gap-2 mt-2">
+        <span class="text-display-lg font-display-lg leading-none" id="relayAccuracyValue">--<span class="text-headline-md text-primary-fixed ml-1">%</span></span>
+      </div>
+      <div class="flex items-center gap-2 mt-4">
+        <span class="material-symbols-outlined text-tertiary-fixed text-sm" id="relayValidatedIcon">verified</span>
+        <span class="text-label-sm font-label-sm text-outline-variant" id="relayValidatedText">Awaiting data</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Comparison View -->
+  <section class="space-y-gutter">
+    <div class="flex justify-between items-center border-b border-outline-variant pb-stack-sm">
+      <h3 class="text-headline-md font-headline-md text-on-background">Side-by-Side Validation</h3>
+      <div class="flex gap-2">
+        <button class="p-2 border border-outline-variant rounded hover:bg-surface-container transition-colors" title="Zoom">
+          <span class="material-symbols-outlined">zoom_in</span>
+        </button>
+        <button id="swapBtn" class="p-2 border border-outline-variant rounded hover:bg-surface-container transition-colors" title="Swap Source A / B">
+          <span class="material-symbols-outlined">sync_alt</span>
+        </button>
+      </div>
+    </div>
+
+    <div id="comparisonEmpty" class="border border-dashed border-outline-variant rounded-lg p-stack-lg text-center text-on-surface-variant text-body-md">
+      Load two CSV logs above to see side-by-side validation.
+    </div>
+
+    <div id="comparisonGrid" class="hidden grid grid-cols-1 xl:grid-cols-2 gap-gutter">
+      <!-- Source A -->
+      <div class="bg-surface border border-outline-variant rounded-lg overflow-hidden flex flex-col shadow-sm">
+        <div class="bg-secondary-container/10 border-b border-outline-variant p-stack-md flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="text-label-sm font-label-sm bg-secondary text-on-secondary px-2 py-0.5 rounded">SOURCE A</span>
+            <span class="text-label-sm font-label-sm text-on-surface-variant" id="sourceAName">—</span>
+          </div>
+        </div>
+        <div class="h-52 border-b border-outline-variant relative overflow-hidden bg-surface-container-low/30">
+          <svg class="w-full h-full chart-glow" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <g id="sourceAGrid" stroke="#857276" stroke-opacity="0.25" stroke-width="0.3"></g>
+            <path id="sourceAArea" d="" fill="url(#gradientA)" opacity="0.18"></path>
+            <path id="sourceALine" d="" fill="none" stroke="#68223c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            <g id="sourceARelayStrip"></g>
+            <defs>
+              <linearGradient id="gradientA" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#68223c"></stop>
+                <stop offset="100%" stop-color="#68223c" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="absolute top-3 left-4 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-outline-variant">
+            <p class="text-data-md font-data-md text-primary"><span id="sourceAMax">0</span> Max</p>
+          </div>
+          <div class="absolute top-3 right-4 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-outline-variant">
+            <p class="text-data-md font-data-md text-on-surface-variant"><span id="sourceAMin">0</span> Min</p>
+          </div>
+          <div class="absolute bottom-2 right-4 flex items-center gap-2 bg-surface/80 backdrop-blur px-2 py-0.5 rounded border border-outline-variant">
+            <span class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-tertiary inline-block"></span>ON</span>
+            <span class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-error inline-block"></span>OFF</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto flex-1 h-[320px] custom-scrollbar">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-on-background text-on-primary z-10">
+              <tr>
+                <th class="p-stack-sm text-label-sm font-label-sm">TIMESTAMP</th>
+                <th class="p-stack-sm text-label-sm font-label-sm">ANALOG VALUE</th>
+                <th class="p-stack-sm text-label-sm font-label-sm text-center">RELAY STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="sourceATableBody" class="divide-y divide-outline-variant font-data-md text-data-md"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Source B -->
+      <div class="bg-surface border border-outline-variant rounded-lg overflow-hidden flex flex-col shadow-sm">
+        <div class="bg-primary-container/10 border-b border-outline-variant p-stack-md flex justify-between items-center">
+          <div class="flex items-center gap-2">
+            <span class="text-label-sm font-label-sm bg-primary text-on-primary px-2 py-0.5 rounded">SOURCE B</span>
+            <span class="text-label-sm font-label-sm text-on-surface-variant" id="sourceBName">—</span>
+          </div>
+        </div>
+        <div class="h-52 border-b border-outline-variant relative overflow-hidden bg-surface-container-low/30">
+          <svg class="w-full h-full chart-glow" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <g id="sourceBGrid" stroke="#857276" stroke-opacity="0.25" stroke-width="0.3"></g>
+            <path id="sourceBArea" d="" fill="url(#gradientB)" opacity="0.18"></path>
+            <path id="sourceBLine" d="" fill="none" stroke="#844b73" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path>
+            <g id="sourceBRelayStrip"></g>
+            <defs>
+              <linearGradient id="gradientB" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stop-color="#844b73"></stop>
+                <stop offset="100%" stop-color="#844b73" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+          </svg>
+          <div class="absolute top-3 left-4 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-outline-variant">
+            <p class="text-data-md font-data-md text-secondary"><span id="sourceBMax">0</span> Max</p>
+          </div>
+          <div class="absolute top-3 right-4 bg-surface/80 backdrop-blur px-2 py-1 rounded border border-outline-variant">
+            <p class="text-data-md font-data-md text-on-surface-variant"><span id="sourceBMin">0</span> Min</p>
+          </div>
+          <div class="absolute bottom-2 right-4 flex items-center gap-2 bg-surface/80 backdrop-blur px-2 py-0.5 rounded border border-outline-variant">
+            <span class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-tertiary inline-block"></span>ON</span>
+            <span class="flex items-center gap-1 text-label-sm font-label-sm text-on-surface-variant"><span class="w-2 h-2 rounded-full bg-error inline-block"></span>OFF</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto flex-1 h-[320px] custom-scrollbar">
+          <table class="w-full text-left border-collapse">
+            <thead class="sticky top-0 bg-on-background text-on-primary z-10">
+              <tr>
+                <th class="p-stack-sm text-label-sm font-label-sm">TIMESTAMP</th>
+                <th class="p-stack-sm text-label-sm font-label-sm">ANALOG VALUE</th>
+                <th class="p-stack-sm text-label-sm font-label-sm text-center">RELAY STATUS</th>
+              </tr>
+            </thead>
+            <tbody id="sourceBTableBody" class="divide-y divide-outline-variant font-data-md text-data-md"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div id="showMoreBar" class="hidden flex flex-col sm:flex-row items-center justify-between gap-3 border border-outline-variant rounded-lg px-stack-md py-stack-sm bg-surface">
+      <p id="showMoreNote" class="text-label-sm font-label-sm text-on-surface-variant"></p>
+      <button id="showMoreBtn" type="button" class="border border-outline-variant text-on-background font-bold px-5 py-2 rounded hover:bg-surface-container transition-colors text-label-sm font-label-sm whitespace-nowrap">
+        Show More
+      </button>
+    </div>
+  </section>
+
+  <!-- 4. Methodology Accordion -->
+  <section class="w-full">
+    <div class="bg-surface border border-outline-variant rounded-lg overflow-hidden shadow-sm">
+      <div class="accordion-item" id="methodAccordion">
+        <button type="button" id="methodToggle" class="w-full flex items-center justify-between p-stack-md text-left">
+          <span class="text-label-sm font-label-sm text-outline uppercase tracking-wide">How accuracy is calculated</span>
+          <span class="material-symbols-outlined accordion-chevron text-on-surface-variant">expand_more</span>
+        </button>
+        <div class="accordion-content">
+          <div>
+            <div class="px-stack-md pb-stack-lg space-y-stack-sm text-body-md text-on-surface-variant border-t border-outline-variant pt-stack-md">
+              <p><span class="font-bold text-on-background">Timestamp accuracy</span> — each log's timestamps are converted to elapsed seconds from its first sample, then compared sample-by-sample between Source A and B. The average drift is expressed as a percentage of the total run duration.</p>
+              <p><span class="font-bold text-on-background">Analog value accuracy</span> — the reading at each matched sample is compared between sources. The average absolute difference is normalized against the observed value range to produce a percentage.</p>
+              <p><span class="font-bold text-on-background">Relay status accuracy</span> — the share of matched samples where the relay state (ON/OFF, HIGH/LOW, TRUE/FALSE, 1/0) agrees between Source A and B.</p>
+              <p><span class="font-bold text-on-background">Overall accuracy</span> — the equal-weighted average of the three metrics above (Timestamp, Analog Value, and Relay Status), computed over the number of samples common to both files.</p>
+              <p class="text-label-sm font-label-sm text-outline">Column matching is case-insensitive and tolerant of misspelled or differently-worded headers — it looks for words like "time"/"date" for Timestamp, "analog"/"value"/"voltage"/"signal"/"pot…" for Analog Value, and "relay"/"status"/"state" for Relay Status, anywhere in each header.</p>
+              <p class="text-label-sm font-label-sm text-outline">Each chart plots the analog value trace with a shaded reference grid, and includes a colored strip beneath it showing the relay status (ON/OFF) timeline for that source, so all three compared fields are visible at a glance.</p>
+              <p class="text-label-sm font-label-sm text-outline">Tables initially show the first 50 rows per source; use "Show More" below the tables to reveal more in batches — accuracy metrics always reflect every matched sample, not just the rows currently displayed.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+<!-- Footer -->
+<footer class="w-full py-stack-lg px-margin-desktop bg-on-background text-on-primary border-t border-outline flex flex-col md:flex-row justify-between items-center gap-4">
+  <div class="flex flex-col md:flex-row items-center gap-4">
+    <span class="text-label-sm font-label-sm font-black">AEGION DYNAMIC</span>
+  </div>
+</footer>
+</main>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- State ----------
+  let sourceA = null; // { name, rows: [{tSeconds, tRaw, analog, relay}], max }
+  let sourceB = null;
+
+  // ---------- DOM refs ----------
+  const fileInput = document.getElementById('fileInput');
+  const dropzone = document.getElementById('dropzone');
+  const selectFilesBtn = document.getElementById('selectFilesBtn');
+  const clearFilesBtn = document.getElementById('clearFilesBtn');
+  const dropzoneTitle = document.getElementById('dropzoneTitle');
+  const dropzoneSubtitle = document.getElementById('dropzoneSubtitle');
+  const dropzoneIcon = document.getElementById('dropzoneIcon');
+  const dropzoneError = document.getElementById('dropzoneError');
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  const comparisonEmpty = document.getElementById('comparisonEmpty');
+  const comparisonGrid = document.getElementById('comparisonGrid');
+  const showMoreBar = document.getElementById('showMoreBar');
+  const showMoreNote = document.getElementById('showMoreNote');
+  const showMoreBtn = document.getElementById('showMoreBtn');
+  const swapBtn = document.getElementById('swapBtn');
+
+  const ROWS_INITIAL = 50;
+  const ROWS_INCREMENT = 100;
+  let visibleRows = ROWS_INITIAL;
+
+  // ---------- CSV parsing helpers ----------
+  function splitCsvLine(line){
+    // simple CSV split with basic quote support
+    const out = [];
+    let cur = '';
+    let inQuotes = false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch === '"'){
+        inQuotes = !inQuotes;
+      } else if(ch === ',' && !inQuotes){
+        out.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur.trim());
+    return out.map(s => s.replace(/^"|"$/g,'').trim());
+  }
+
+  function findColumnIndex(headers, keywords){
+    for(let i=0;i<headers.length;i++){
+      const h = headers[i].toLowerCase().replace(/[^a-z]/g,'');
+      for(const kw of keywords){
+        if(h.includes(kw)) return i;
+      }
+    }
+    return -1;
+  }
+
+  function parseTimeToSeconds(str, fallbackIndex){
+    if(str == null) return fallbackIndex;
+    str = String(str).trim();
+    let m = str.match(/^(\d{1,2}):(\d{2}):(\d{2})(?:\.(\d+))?$/);
+    if(m){
+      return (+m[1])*3600 + (+m[2])*60 + (+m[3]) + (m[4] ? +('0.'+m[4]) : 0);
+    }
+    let d = Date.parse(str);
+    if(!isNaN(d)) return d/1000;
+    let n = parseFloat(str);
+    if(!isNaN(n) && str !== '') return n;
+    return fallbackIndex;
+  }
+
+  function normalizeRelay(val){
+    const v = String(val == null ? '' : val).trim().toLowerCase();
+    if(['on','1','true','high','active','closed'].includes(v)) return 'ON';
+    if(['off','0','false','low','inactive','open'].includes(v)) return 'OFF';
+    // fall back: any truthy-looking non-empty non-zero string counts as ON
+    if(v !== '' && v !== '0') return 'ON';
+    return 'OFF';
+  }
+
+  function parseCsvText(text, fileName){
+    const lines = text.split(/\r\n|\n|\r/).filter(l => l.trim() !== '');
+    if(lines.length < 2){
+      throw new Error(`"${fileName}" doesn't have any data rows.`);
+    }
+    const headers = splitCsvLine(lines[0]);
+    const tsIdx = findColumnIndex(headers, ['timestamp','timestmp','tstamp','time','date','stamp']);
+    const analogIdx = findColumnIndex(headers, ['analog','analogue','analgo','value','val','potent','poten','pot','voltage','volt','signal','reading','sensor','amplitude']);
+    const relayIdx = findColumnIndex(headers, ['relaystatus','relay','status','state','switch']);
+
+    if(tsIdx === -1 || analogIdx === -1 || relayIdx === -1){
+      throw new Error(`Couldn't find Timestamp / Analog Value / Relay Status columns in "${fileName}". Found headers: ${headers.join(', ')}`);
+    }
+
+    const rows = [];
+    for(let i=1;i<lines.length;i++){
+      const cols = splitCsvLine(lines[i]);
+      if(cols.length === 1 && cols[0] === '') continue;
+      const tRaw = cols[tsIdx] !== undefined ? cols[tsIdx] : '';
+      const analogRaw = cols[analogIdx] !== undefined ? cols[analogIdx] : '0';
+      const relayRaw = cols[relayIdx] !== undefined ? cols[relayIdx] : '';
+      const analog = parseFloat(analogRaw);
+      rows.push({
+        tRaw: tRaw,
+        tSeconds: parseTimeToSeconds(tRaw, i-1),
+        analog: isNaN(analog) ? 0 : analog,
+        relay: normalizeRelay(relayRaw)
+      });
+    }
+    if(rows.length === 0){
+      throw new Error(`"${fileName}" has headers but no readable data rows.`);
+    }
+    const max = Math.max(...rows.map(r => r.analog));
+    return { name: fileName, rows, max };
+  }
+
+  // ---------- File handling ----------
+  function readFileAsText(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error(`Couldn't read "${file.name}".`));
+      reader.readAsText(file);
+    });
+  }
+
+  async function handleFiles(fileList){
+    const files = Array.from(fileList).filter(f => /\.csv$/i.test(f.name) || f.type === 'text/csv');
+    if(files.length === 0){
+      showError('No CSV files detected. Please drop or select .csv files.');
+      return;
+    }
+    hideError();
+
+    try{
+      for(const file of files){
+        const text = await readFileAsText(file);
+        const parsed = parseCsvText(text, file.name);
+        if(!sourceA){
+          sourceA = parsed;
+        } else if(!sourceB){
+          sourceB = parsed;
+        } else {
+          // both slots full: shift B->A, new->B
+          sourceA = sourceB;
+          sourceB = parsed;
+        }
+      }
+    }catch(err){
+      showError(err.message);
+      return;
+    }
+
+    visibleRows = ROWS_INITIAL;
+    render();
+  }
+
+  function showError(msg){
+    dropzoneError.textContent = msg;
+    dropzoneError.classList.remove('hidden');
+  }
+  function hideError(){
+    dropzoneError.classList.add('hidden');
+    dropzoneError.textContent = '';
+  }
+
+  function resetAll(){
+    sourceA = null;
+    sourceB = null;
+    fileInput.value = '';
+    visibleRows = ROWS_INITIAL;
+    hideError();
+    render();
+  }
+
+  // ---------- Drag & drop wiring ----------
+  selectFilesBtn.addEventListener('click', () => fileInput.click());
+  clearFilesBtn.addEventListener('click', resetAll);
+  fileInput.addEventListener('change', (e) => {
+    if(e.target.files && e.target.files.length) handleFiles(e.target.files);
+  });
+
+  ['dragenter','dragover'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('dropzone-active');
+    });
+  });
+  ['dragleave','drop'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('dropzone-active');
+    });
+  });
+  dropzone.addEventListener('drop', (e) => {
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length){
+      handleFiles(e.dataTransfer.files);
+    }
+  });
+  dropzone.addEventListener('click', (e) => {
+    if(e.target === selectFilesBtn || e.target === clearFilesBtn) return;
+    fileInput.click();
+  });
+
+  swapBtn.addEventListener('click', () => {
+    if(!sourceA || !sourceB) return;
+    const tmp = sourceA; sourceA = sourceB; sourceB = tmp;
+    render();
+  });
+
+  showMoreBtn.addEventListener('click', () => {
+    const maxLen = Math.max(sourceA ? sourceA.rows.length : 0, sourceB ? sourceB.rows.length : 0);
+    if(visibleRows >= maxLen){
+      visibleRows = ROWS_INITIAL;
+    } else {
+      visibleRows = Math.min(visibleRows + ROWS_INCREMENT, maxLen);
+    }
+    renderTables();
+  });
+
+  // ---------- Metrics ----------
+  function computeMetrics(a, b){
+    const n = Math.min(a.rows.length, b.rows.length);
+    if(n === 0){
+      return { overall:0, timestamp:0, analog:0, relay:0, n:0 };
+    }
+    const aElapsed = a.rows.map(r => r.tSeconds - a.rows[0].tSeconds);
+    const bElapsed = b.rows.map(r => r.tSeconds - b.rows[0].tSeconds);
+    const totalDuration = Math.max(aElapsed[n-1] || 0, bElapsed[n-1] || 0, 1);
+
+    let tsDiffSum = 0, analogDiffSum = 0, relayMatches = 0;
+    const analogRange = Math.max(a.max, b.max, 1);
+
+    for(let i=0;i<n;i++){
+      tsDiffSum += Math.abs(aElapsed[i] - bElapsed[i]);
+      analogDiffSum += Math.abs(a.rows[i].analog - b.rows[i].analog);
+      if(a.rows[i].relay === b.rows[i].relay) relayMatches++;
+    }
+
+    const avgTsDiff = tsDiffSum / n;
+    const avgAnalogDiff = analogDiffSum / n;
+
+    const timestampAcc = clamp(100 - (avgTsDiff / totalDuration) * 100, 0, 100);
+    const analogAcc = clamp(100 - (avgAnalogDiff / analogRange) * 100, 0, 100);
+    const relayAcc = clamp((relayMatches / n) * 100, 0, 100);
+    const overall = (timestampAcc + analogAcc + relayAcc) / 3;
+
+    return {
+      overall, timestamp: timestampAcc, analog: analogAcc, relay: relayAcc,
+      n, avgTsDiff, avgAnalogDiff, relayMatches
+    };
+  }
+
+  function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+  // ---------- Chart ----------
+  const PLOT_TOP = 8;      // svg y where the max value sits
+  const PLOT_BOTTOM = 78;  // svg y baseline where the min value / area sits
+  const STRIP_TOP = 84;    // relay status strip
+  const STRIP_BOTTOM = 97;
+
+  function buildChart(values, relays){
+    if(!values || values.length === 0){
+      return { line:'', area:'', gridlines:[], relayRects:'', min:0, max:0 };
+    }
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const range = (max - min) || 1;
+    const maxPoints = 48;
+    let sampledV = values;
+    let sampledR = relays || [];
+    if(values.length > maxPoints){
+      sampledV = [];
+      const sr = [];
+      for(let i=0;i<maxPoints;i++){
+        const idx = Math.floor(i * (values.length - 1) / (maxPoints - 1));
+        sampledV.push(values[idx]);
+        sr.push(relays ? relays[idx] : null);
+      }
+      sampledR = sr;
+    }
+
+    const step = 100 / ((sampledV.length - 1) || 1);
+    const points = sampledV.map((v,i) => ({
+      x: i * step,
+      y: PLOT_BOTTOM - ((v - min) / range) * (PLOT_BOTTOM - PLOT_TOP)
+    }));
+
+    // Smoothed curve: quadratic Bezier through midpoints so the line reads
+    // like a real analog trace rather than a jagged connect-the-dots plot.
+    let line = `M${points[0].x.toFixed(2)},${points[0].y.toFixed(2)}`;
+    for(let i=0;i<points.length-1;i++){
+      const p0 = points[i], p1 = points[i+1];
+      const mx = (p0.x + p1.x) / 2, my = (p0.y + p1.y) / 2;
+      line += ` Q${p0.x.toFixed(2)},${p0.y.toFixed(2)} ${mx.toFixed(2)},${my.toFixed(2)}`;
+    }
+    const last = points[points.length-1];
+    line += ` T${last.x.toFixed(2)},${last.y.toFixed(2)}`;
+
+    const area = line + ` L100,${PLOT_BOTTOM} L0,${PLOT_BOTTOM} Z`;
+
+    // Horizontal gridlines across the plot region, like a real chart axis.
+    const gridlines = [];
+    const gridCount = 4;
+    for(let g=0; g<=gridCount; g++){
+      gridlines.push(PLOT_TOP + (g / gridCount) * (PLOT_BOTTOM - PLOT_TOP));
+    }
+
+    // Relay-status timeline strip beneath the trace, one segment per sample.
+    let relayRects = '';
+    if(sampledR && sampledR.length){
+      sampledR.forEach((r, i) => {
+        const cx = i * step;
+        const x0 = Math.max(0, cx - step / 2);
+        const x1 = Math.min(100, cx + step / 2);
+        const w = Math.max(0.4, x1 - x0);
+        const isOn = r === 'ON';
+        const fill = isOn ? '#16521c' : '#93000a';
+        const opacity = isOn ? 0.55 : 0.3;
+        relayRects += `<rect x="${x0.toFixed(2)}" y="${STRIP_TOP}" width="${w.toFixed(2)}" height="${STRIP_BOTTOM - STRIP_TOP}" fill="${fill}" opacity="${opacity}"></rect>`;
+      });
+    }
+
+    return { line, area, gridlines, relayRects, min, max };
+  }
+
+  function renderChart(prefix, values, relays){
+    const chart = buildChart(values, relays);
+    document.getElementById(`${prefix}Line`).setAttribute('d', chart.line);
+    document.getElementById(`${prefix}Area`).setAttribute('d', chart.area);
+
+    const gridEl = document.getElementById(`${prefix}Grid`);
+    gridEl.innerHTML = chart.gridlines
+      .map(y => `<line x1="0" y1="${y.toFixed(2)}" x2="100" y2="${y.toFixed(2)}"></line>`)
+      .join('');
+
+    document.getElementById(`${prefix}RelayStrip`).innerHTML = chart.relayRects;
+
+    document.getElementById(`${prefix}Max`).textContent = chart.max;
+    document.getElementById(`${prefix}Min`).textContent = chart.min;
+  }
+
+  // ---------- Animated number count-up ----------
+  function animateNumber(el, toValue, decimals){
+    const from = 0;
+    const duration = 900;
+    const start = performance.now();
+    function tick(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const val = from + (toValue - from) * eased;
+      el.textContent = val.toFixed(decimals);
+      if(t < 1) requestAnimationFrame(tick);
+      else el.textContent = toValue.toFixed(decimals);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  // ---------- Table rendering ----------
+  function relayBadgeHtml(status){
+    if(status === 'ON'){
+      return `<span class="px-2 py-0.5 bg-tertiary-fixed text-on-tertiary-fixed-variant rounded-sm text-[10px] font-bold">ON</span>`;
+    }
+    return `<span class="px-2 py-0.5 bg-error-container text-on-error-container rounded-sm text-[10px] font-bold">OFF</span>`;
+  }
+
+  function renderTable(tbodyEl, rows, hoverClass){
+    const limited = rows.slice(0, visibleRows);
+    const html = limited.map((r, idx) => {
+      const stripe = idx % 2 === 0 ? 'bg-surface' : 'bg-surface-container-low/30';
+      return `<tr class="${stripe} ${hoverClass} transition-colors cursor-crosshair">
+        <td class="p-stack-sm text-on-surface-variant">${escapeHtml(r.tRaw)}</td>
+        <td class="p-stack-sm">${escapeHtml(String(r.analog))}</td>
+        <td class="p-stack-sm text-center">${relayBadgeHtml(r.relay)}</td>
+      </tr>`;
+    }).join('');
+    tbodyEl.innerHTML = html;
+  }
+
+  function updateShowMoreBar(){
+    if(!sourceA || !sourceB){
+      showMoreBar.classList.add('hidden');
+      return;
+    }
+    const maxLen = Math.max(sourceA.rows.length, sourceB.rows.length);
+    if(maxLen <= ROWS_INITIAL){
+      showMoreBar.classList.add('hidden');
+      return;
+    }
+    showMoreBar.classList.remove('hidden');
+    const shown = Math.min(visibleRows, maxLen);
+    showMoreNote.textContent = `Showing ${shown} of ${maxLen} rows per source · accuracy is computed across all ${Math.min(sourceA.rows.length, sourceB.rows.length)} matched samples.`;
+    showMoreBtn.textContent = visibleRows >= maxLen ? 'Show Less' : `Show More (+${Math.min(ROWS_INCREMENT, maxLen - visibleRows)})`;
+  }
+
+  function renderTables(){
+    renderTable(document.getElementById('sourceATableBody'), sourceA.rows, 'hover:bg-primary/5');
+    renderTable(document.getElementById('sourceBTableBody'), sourceB.rows, 'hover:bg-secondary/5');
+    updateShowMoreBar();
+    wireSync();
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ---------- Sync scroll / hover between tables ----------
+  function wireSync(){
+    const wrapA = document.getElementById('sourceATableBody').closest('.overflow-x-auto');
+    const wrapB = document.getElementById('sourceBTableBody').closest('.overflow-x-auto');
+    if(!wrapA || !wrapB) return;
+
+    let syncingA = false, syncingB = false;
+    wrapA.onscroll = () => {
+      if(syncingB) { syncingB = false; return; }
+      syncingA = true;
+      wrapB.scrollTop = wrapA.scrollTop;
+    };
+    wrapB.onscroll = () => {
+      if(syncingA) { syncingA = false; return; }
+      syncingB = true;
+      wrapA.scrollTop = wrapB.scrollTop;
+    };
+
+    const rowsA = wrapA.querySelectorAll('tbody tr');
+    const rowsB = wrapB.querySelectorAll('tbody tr');
+    rowsA.forEach((row, idx) => {
+      row.addEventListener('mouseenter', () => { if(rowsB[idx]) rowsB[idx].classList.add('bg-primary/10'); });
+      row.addEventListener('mouseleave', () => { if(rowsB[idx]) rowsB[idx].classList.remove('bg-primary/10'); });
+    });
+    rowsB.forEach((row, idx) => {
+      row.addEventListener('mouseenter', () => { if(rowsA[idx]) rowsA[idx].classList.add('bg-primary/10'); });
+      row.addEventListener('mouseleave', () => { if(rowsA[idx]) rowsA[idx].classList.remove('bg-primary/10'); });
+    });
+  }
+
+  // ---------- Main render ----------
+  function updateDropzoneState(){
+    const count = (sourceA ? 1 : 0) + (sourceB ? 1 : 0);
+    if(count === 0){
+      dropzoneIcon.textContent = 'upload_file';
+      dropzoneTitle.textContent = 'Drop CSV Files Here';
+      dropzoneSubtitle.textContent = 'Upload industrial relay logs to begin accuracy comparison and drift analysis. Drop two files at once, or one at a time — first is Source A, second is Source B.';
+      clearFilesBtn.classList.add('hidden');
+      statusDot.className = 'w-2 h-2 rounded-full bg-outline-variant';
+      statusText.textContent = 'Awaiting Data';
+    } else if(count === 1){
+      dropzoneIcon.textContent = 'hourglass_top';
+      dropzoneTitle.textContent = '1 of 2 Files Loaded';
+      dropzoneSubtitle.textContent = `Source A: ${sourceA.name} — drop or select a second CSV to compare against it.`;
+      clearFilesBtn.classList.remove('hidden');
+      statusDot.className = 'w-2 h-2 rounded-full bg-primary';
+      statusText.textContent = 'Partial Data';
+    } else {
+      dropzoneIcon.textContent = 'task_alt';
+      dropzoneTitle.textContent = 'Both Sources Loaded';
+      dropzoneSubtitle.textContent = `Comparing ${sourceA.name} against ${sourceB.name}. Drop a new file to replace the oldest source.`;
+      clearFilesBtn.classList.remove('hidden');
+      statusDot.className = 'w-2 h-2 rounded-full bg-tertiary';
+      statusText.textContent = 'Validated';
+    }
+  }
+
+  function render(){
+    updateDropzoneState();
+
+    if(!sourceA || !sourceB){
+      comparisonEmpty.classList.remove('hidden');
+      comparisonGrid.classList.add('hidden');
+      showMoreBar.classList.add('hidden');
+      setMetricsEmpty();
+      return;
+    }
+
+    comparisonEmpty.classList.add('hidden');
+    comparisonGrid.classList.remove('hidden');
+
+    const metrics = computeMetrics(sourceA, sourceB);
+    setMetrics(metrics);
+
+    // Names
+    document.getElementById('sourceAName').textContent = sourceA.name;
+    document.getElementById('sourceBName').textContent = sourceB.name;
+
+    // Charts — analog value trace + relay-status timeline strip
+    renderChart('sourceA', sourceA.rows.map(r => r.analog), sourceA.rows.map(r => r.relay));
+    renderChart('sourceB', sourceB.rows.map(r => r.analog), sourceB.rows.map(r => r.relay));
+
+    // Tables (+ show-more control)
+    renderTables();
+
+    // re-trigger stagger animation on metric cards
+    document.querySelectorAll('#overallAccuracyBar').forEach(() => {});
+  }
+
+  function setMetricsEmpty(){
+    document.getElementById('overallAccuracyValue').textContent = '--';
+    document.getElementById('timestampAccuracyValue').textContent = '--';
+    document.getElementById('analogAccuracyValue').textContent = '--';
+    document.getElementById('relayAccuracyValue').innerHTML = '--<span class="text-headline-md text-primary-fixed ml-1">%</span>';
+    document.getElementById('overallAccuracyBar').style.width = '0%';
+    document.getElementById('timestampAccuracyNote').textContent = 'Awaiting data';
+    document.getElementById('analogAccuracyNote').textContent = 'Awaiting data';
+    document.getElementById('relayValidatedText').textContent = 'Awaiting data';
+    document.getElementById('relayValidatedIcon').textContent = 'hourglass_empty';
+  }
+
+  function setMetrics(m){
+    animateNumber(document.getElementById('overallAccuracyValue'), m.overall, 2);
+    animateNumber(document.getElementById('timestampAccuracyValue'), m.timestamp, 2);
+    animateNumber(document.getElementById('analogAccuracyValue'), m.analog, 0);
+
+    const relayEl = document.getElementById('relayAccuracyValue');
+    const relayVal = m.relay.toFixed(2);
+    relayEl.innerHTML = `${relayVal}<span class="text-headline-md text-primary-fixed ml-1">%</span>`;
+
+    document.getElementById('overallAccuracyBar').style.width = `${m.overall}%`;
+
+    document.getElementById('timestampAccuracyNote').textContent =
+      m.timestamp >= 95 ? 'Within Tolerance' : (m.timestamp >= 80 ? 'Minor Drift Detected' : 'Significant Drift');
+
+    document.getElementById('analogAccuracyNote').textContent = `Matched ${m.n} samples`;
+
+    const relayNote = document.getElementById('relayValidatedText');
+    const relayIcon = document.getElementById('relayValidatedIcon');
+    if(m.relay >= 95){
+      relayNote.textContent = 'Validated Node 084';
+      relayIcon.textContent = 'verified';
+    } else {
+      relayNote.textContent = `${m.relayMatches} / ${m.n} states matched`;
+      relayIcon.textContent = 'warning';
+    }
+  }
+
+  // ---------- Accordion ----------
+  const methodToggle = document.getElementById('methodToggle');
+  const methodAccordion = document.getElementById('methodAccordion');
+  methodToggle.addEventListener('click', () => {
+    methodAccordion.classList.toggle('open');
+  });
+
+  // ---------- Init ----------
+  document.querySelectorAll('section.grid.grid-cols-1.md\\:grid-cols-4 > div').forEach((el, i) => {
+    el.classList.add('stagger-in');
+    el.style.animationDelay = `${i * 90}ms`;
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
